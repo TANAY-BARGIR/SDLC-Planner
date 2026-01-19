@@ -56,7 +56,7 @@ const seedDatabase = async () => {
               parameters: inputs.parameters,
               recommendedModel: bestPlan.model,
               confidenceScore: bestPlan.score,
-              keyFactors: bestPlan.rationale.map((r) => r.desc), // Storing the "Why"
+              keyFactors: bestPlan.rationale.map(r => r.description)// Storing the "Why"
             });
           }
         }

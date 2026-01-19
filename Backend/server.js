@@ -24,8 +24,6 @@ app.get("/", (req, res) => {
   res.send(`SDLC Pro API is Running...`);
 });
 
-
-
 app.post("/api/inception", async (req, res) => {
   try {
     const { projectName, description, parameters } = req.body;
@@ -71,8 +69,7 @@ app.post("/api/inception", async (req, res) => {
         riskAssessment: {
           level: calculatedRisk,
           rationale: bestPlan.rationale, // Structured Data
-          // NEW: We save the human-readable narrative here
-          // (We will need to update the Schema in the next step to support this field)
+          narrative: narrative,
         },
         estimates: {
           cost: bestPlan.estimates.estimatedBudget,

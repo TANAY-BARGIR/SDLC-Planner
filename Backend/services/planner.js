@@ -35,9 +35,12 @@ const generatePlan = (inputs) => {
           candidate.phases = getPhases(model);
 
           if (testStrat === "TDD (Test Driven Dev)") {
-            candidate.phases = candidate.phases.map((p) =>
-              p === "Coding" ? "Coding (TDD Cycle)" : p
-            );
+            candidate.phases = candidate.phases.map((p) => {
+              if (p === "Coding") return "Coding (TDD Cycle)"; // V-Model
+              if (p === "Implementation") return "Implementation (TDD)"; // Waterfall
+              if (p === "Dev/Test Loop") return "Dev/Test Loop (TDD)"; // Agile
+              return p;
+            });
           }
 
           candidate.score = evaluation.score; // Base Rule Score
@@ -52,7 +55,7 @@ const generatePlan = (inputs) => {
             candidate,
             candidate.estimates,
             riskPenalty,
-            inputs.parameters.budget
+            inputs.parameters.budget,
           );
 
           // 4. Calculate ML Score (Pattern Matching)
@@ -87,7 +90,13 @@ const generatePlan = (inputs) => {
 
   // 7. Sort by Score
   validCandidates.sort((a, b) => b.score - a.score);
-
+  if (validCandidates.length === 0) {
+    return {
+      bestPlan: null,
+      alternatives: [],
+      error: "No methodology fit found. Constraints are too strict.",
+    };
+  }
   // 8. Calibrate & Round
   const calibratedCandidates = validCandidates.map((c) => {
     let calibrated = c.score;
