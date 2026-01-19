@@ -1,7 +1,7 @@
 // backend/services/explainer.js
 
 const generateNarrative = (plan, inputs, similarCases) => {
-  // SAFETY CHECK: If plan is missing or malformed, return default
+  // SAFETY CHECK
   if (!plan || !plan.rationale) {
     return {
       summary: "Plan generated, but detailed rationale is unavailable.",
@@ -16,49 +16,67 @@ const generateNarrative = (plan, inputs, similarCases) => {
   let narrative = {
     summary: "",
     riskAnalysis: "",
+    evidence: "", // Ensure this field exists
     similarCasesParams: [],
   };
 
-  // 1. Generate Executive Summary
+  // 1. Executive Summary
   narrative.summary = `Based on the ${p.size || "project"} size and ${
     p.teamSkill || "team"
   } composition, we recommend the **${model}** methodology. This plan carries a confidence score of **${score}%**.`;
 
-  // 2. Translate Rationale (The Fix)
-  // We explicitly include items with negative impact OR items tagged as 'AI_FACTOR'
+  // 2. Risk & Factor Analysis (Split Good vs Bad)
+  // Risks: Negative scores OR AI Factors with 0 or negative impact
   const risks = rationale.filter(
-    (r) => (r.impactScore < 0 || r.type === "AI_FACTOR") && r.description
+    (r) =>
+      (r.impactScore < 0 || (r.type === "AI_FACTOR" && r.impactScore <= 0)) &&
+      r.description,
   );
 
-  let riskText = "";
-  if (risks.length > 0) {
-    riskText = "Key risk factors identified include: ";
-    const points = risks.map((r) => {
-      // Clean up the description text
-      let desc = r.description.replace("Machine Learning Adjustment: ", "");
+  // Bonuses: Positive scores (including AI bonuses)
+  const bonuses = rationale.filter((r) => r.impactScore > 0 && r.description);
 
-      // Handle the label: if impact is 0 (like AI factors), label it clearly
+  // Generate Risk Text
+  if (risks.length > 0) {
+    const riskPoints = risks.map((r) => {
+      let desc = r.description.replace("Machine Learning Adjustment: ", "");
       const impactLabel =
         r.impactScore === 0 ? "AI Pattern Detected" : `${r.impactScore}%`;
-
       return `${desc} (Impact: ${impactLabel})`;
     });
-    riskText += points.join("; ") + ".";
+    narrative.riskAnalysis = `Key risk factors: ${riskPoints.join("; ")}.`;
   } else {
-    riskText = "No significant methodology risks were detected.";
+    narrative.riskAnalysis = "No significant methodology risks were detected.";
   }
 
-  narrative.riskAnalysis = riskText;
+  // Append Bonuses to Risk Analysis (or create a new field if UI supported it)
+  if (bonuses.length > 0) {
+    const bonusPoints = bonuses.map((r) => {
+      let desc = r.description.replace("Machine Learning Adjustment: ", "");
+      return `${desc} (Bonus: +${r.impactScore}%)`;
+    });
+    // We append this to the analysis so the user sees the good news too
+    narrative.riskAnalysis += ` \n\n✅ Success Factors: ${bonusPoints.join(
+      "; ",
+    )}.`;
+  }
 
-  // 3. Grounding (RAG - Retrieval Augmented Generation)
+  // 3. Grounding (Smarter Evidence Logic)
   if (similarCases && similarCases.length > 0) {
     const agreement = similarCases.filter(
-      (c) => c.recommendedModel === model
+      (c) => c.recommendedModel === model,
     ).length;
-    narrative.evidence = `We analyzed ${similarCases.length} similar past projects. ${agreement} of them also used ${model}, validating this choice.`;
+
+    // FIX: Change text based on agreement count
+    if (agreement > 0) {
+      narrative.evidence = `We analyzed ${similarCases.length} similar past projects. ${agreement} of them also used ${model}, validating this choice.`;
+    } else {
+      // If history disagrees
+      const otherModel = similarCases[0].recommendedModel;
+      narrative.evidence = `We analyzed ${similarCases.length} similar past projects. Most used ${otherModel}, but we recommend ${model} for your specific constraints.`;
+    }
 
     const example = similarCases[0];
-    // Safety check for keyFactors
     const lesson =
       example.keyFactors && example.keyFactors.length > 0
         ? example.keyFactors[0]
