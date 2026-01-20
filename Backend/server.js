@@ -8,6 +8,7 @@ const { generatePlan } = require("./services/planner");
 const ProjectProfile = require("./models/ProjectProfile");
 const CaseStudy = require("./models/CaseStudy");
 const { generateNarrative } = require("./services/explainer");
+const { saveProjectOutcome } = require("./services/feedback");
 
 const app = express();
 const PORT = 5000;
@@ -39,14 +40,27 @@ app.post("/api/inception", async (req, res) => {
 
     // 2. Retrieve Similar Cases (The Memory)
     // We look for "Twins" in the database
-    const similarCases = await CaseStudy.find({
+    let similarCases = await CaseStudy.find({
       "parameters.size": parameters.size,
       "parameters.requirements": parameters.requirements,
       "parameters.teamSkill": parameters.teamSkill,
     })
-      .limit(3)
-      .lean(); // .lean() converts Mongoose objects to plain JSON
+      .limit(10) // Fetch more candidates
+      .lean();
 
+    // Custom Ranker: Real cases appear first!
+    similarCases.sort((a, b) => {
+      // If 'type' doesn't exist (old data), treat as SYNTHETIC
+      const typeA = a.type || "SYNTHETIC";
+      const typeB = b.type || "SYNTHETIC";
+
+      if (typeA === "REAL" && typeB !== "REAL") return -1; // A comes first
+      if (typeA !== "REAL" && typeB === "REAL") return 1; // B comes first
+      return 0;
+    });
+
+    // Keep top 3 after sorting
+    similarCases = similarCases.slice(0, 3);
     // 3. Generate Narrative (The Explanation)
     const narrative = generateNarrative(bestPlan, { parameters }, similarCases);
 
@@ -66,6 +80,8 @@ app.post("/api/inception", async (req, res) => {
         methodology: bestPlan.model,
         confidenceScore: bestPlan.score,
         phases: bestPlan.phases,
+        architecture: bestPlan.architecture, // Pass the architecture object
+        blueprints: bestPlan.blueprints,
         riskAssessment: {
           level: calculatedRisk,
           rationale: bestPlan.rationale, // Structured Data
@@ -161,6 +177,28 @@ app.get("/api/metrics/summary", async (req, res) => {
 
     res.json({ success: true, stats });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST: Submit Feedback (The Learning Loop)
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const { profileId, feedback } = req.body;
+
+    if (!profileId || !feedback) {
+      return res.status(400).json({ success: false, message: "Missing data" });
+    }
+
+    const savedCase = await saveProjectOutcome(profileId, feedback);
+
+    res.json({
+      success: true,
+      message: "System learning updated successfully!",
+      caseId: savedCase._id,
+    });
+  } catch (error) {
+    console.error("Feedback Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

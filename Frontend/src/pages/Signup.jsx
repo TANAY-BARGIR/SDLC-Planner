@@ -1,11 +1,10 @@
+// frontend/src/pages/Signup.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import DiamondGallery from "../components/DiamondGallery";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
     username: "",
-    companyName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -13,99 +12,103 @@ const Signup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-    console.log("Signup:", formData);
+    // Logic here
   };
 
   return (
-    <div className="page-container">
-      <div className="grid-layout">
-        <div className="left-column">
-          <div className="card" style={{ maxHeight: "85vh", overflowY: "auto" }}>
-            <h2 className="gradient-text" style={{ fontSize: "2rem" }}>
-              Create Account
-            </h2>
-            <p className="subtitle" style={{ fontSize: "1rem" }}>
-              Sign up to get started
-            </p>
+    <div
+      className="page-container"
+      style={{ minHeight: "80vh", justifyContent: "center" }}
+    >
+      <div className="card" style={{ maxWidth: "500px" }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <h2 style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>
+            Create an account
+          </h2>
+          <p style={{ color: "#64748b" }}>
+            Start building better software today.
+          </p>
+        </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Username *</label>
-                <input
-                  className="form-input"
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              {/* Added other fields abbreviated for brevity, include full form as before */}
-              <div className="form-group">
-                <label className="form-label">Email *</label>
-                <input
-                  className="form-input"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Password *</label>
-                  <input
-                    className="form-input"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Confirm Password *</label>
-                  <input
-                    className="form-input"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({ ...formData, confirmPassword: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <button type="submit" className="btn-primary btn-full">
-                Sign Up
-              </button>
-            </form>
-            <p style={{ textAlign: "center", marginTop: "1.5rem", color: "#718096" }}>
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                style={{
-                  color: "#667eea",
-                  fontWeight: "600",
-                  textDecoration: "none",
-                }}
-              >
-                Login
-              </Link>
-            </p>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Username</label>
+            <input
+              className="form-input"
+              type="text"
+              value={formData.username}
+              onChange={(e) =>
+                setFormData({ ...formData, username: e.target.value })
+              }
+              required
+            />
           </div>
-        </div>
-        <div className="right-column">
-          <DiamondGallery />
-        </div>
+
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input
+              className="form-input"
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              required
+            />
+          </div>
+
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                className="form-input"
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirm</label>
+              <input
+                className="form-input"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="btn btn-primary btn-full">
+            Create Account
+          </button>
+        </form>
+
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "1.5rem",
+            fontSize: "0.9rem",
+            color: "#64748b",
+          }}
+        >
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            style={{
+              color: "#4f46e5",
+              fontWeight: "600",
+              textDecoration: "none",
+            }}
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -3,7 +3,8 @@ const { evaluateCandidate, computeUtility } = require("./utility");
 const { estimateResources, getPhases } = require("./estimator");
 const { SDLC_TYPES } = require("../data/constants");
 const { scoreCandidate } = require("./ranker"); // ✅ Correct Import
-
+const { evaluateArchitecture } = require("./architect");
+const { generateBlueprints } = require("./diagrams");
 // Expanded Dimensions
 const MODELS = Object.values(SDLC_TYPES);
 const DOC_LEVELS = ["Low", "Medium", "High"];
@@ -104,9 +105,26 @@ const generatePlan = (inputs) => {
     if (calibrated < 0) calibrated = 0;
     return { ...c, score: Math.round(calibrated) };
   });
+  // ... Existing Phase 5 Code ...
+  const topCandidate = calibratedCandidates[0];
+
+  if (topCandidate) {
+    // 1. Architecture (Phase 5)
+    const archResult = evaluateArchitecture(inputs);
+    topCandidate.architecture = {
+      model: archResult.model, // Ensure property names match
+      score: archResult.score,
+      rationale: archResult.rationale,
+      diagramType: archResult.diagramType,
+    };
+
+    // 2. Blueprints (Phase 6) [NEW]
+    const diagrams = generateBlueprints(topCandidate);
+    topCandidate.blueprints = diagrams;
+  }
 
   return {
-    bestPlan: calibratedCandidates[0],
+    bestPlan: topCandidate,
     alternatives: calibratedCandidates.slice(1, 3),
   };
 };

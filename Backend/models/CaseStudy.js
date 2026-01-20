@@ -2,9 +2,17 @@
 const mongoose = require("mongoose");
 
 const CaseStudySchema = new mongoose.Schema({
-  // 1. The Scenario (The Problem)
+  // 1. The Source Type (NEW)
+  type: {
+    type: String,
+    enum: ["SYNTHETIC", "REAL"],
+    default: "REAL",
+    index: true, // Faster lookups
+  },
+
+  // 2. The Scenario (The Problem)
   title: { type: String, required: true },
-  domain: { type: String, default: "General" }, // e.g., FinTech, Healthcare
+  domain: { type: String, default: "General" },
   parameters: {
     requirements: String,
     teamSkill: String,
@@ -14,23 +22,29 @@ const CaseStudySchema = new mongoose.Schema({
     safetyCritical: Boolean,
   },
 
-  // 2. The Solution (The Logic Output)
-  recommendedModel: String, // e.g., "Agile"
+  // 3. The Solution
+  recommendedModel: String,
   confidenceScore: Number,
 
-  // 3. The Rationale (Why?)
-  keyFactors: [String], // e.g., ["High Risk due to Junior Team", "Short Timeline"]
+  // 4. The Rationale
+  keyFactors: [String],
 
-  // 4. Outcomes (For future expansion - "What actually happened")
+  // 5. Outcomes (Expanded for Real Feedback)
   outcomes: {
     success: { type: Boolean, default: true },
-    actualDuration: Number, // Variance from estimate
+    userRating: { type: Number, min: 1, max: 5 }, // NEW: User satisfaction
+    actualDuration: Number,
+    comment: String, // NEW: User's retrospective
   },
 
   createdAt: { type: Date, default: Date.now },
 });
 
-// Indexing for faster retrieval in later phases
-CaseStudySchema.index({ "parameters.size": 1, "parameters.requirements": 1 });
+// Compound Index: Search by Params, but Sort by Type (Real first)
+CaseStudySchema.index({
+  "parameters.size": 1,
+  "parameters.requirements": 1,
+  type: -1, // -1 means Z->A (Real comes before Synthetic if alphabetical, or custom sort)
+});
 
 module.exports = mongoose.model("CaseStudy", CaseStudySchema);

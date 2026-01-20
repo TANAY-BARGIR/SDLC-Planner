@@ -9,7 +9,7 @@ const RationaleSchema = new mongoose.Schema(
     description: String,
     impactScore: Number,
   },
-  { _id: false }
+  { _id: false },
 ); // Disable auto-ID for sub-documents to keep it clean
 
 const ProjectProfileSchema = new mongoose.Schema({
@@ -38,7 +38,16 @@ const ProjectProfileSchema = new mongoose.Schema({
     methodology: String,
     confidenceScore: Number,
     phases: [String],
-
+    architecture: {
+      model: String,
+      score: Number,
+      rationale: [String],
+      diagramType: String,
+    },
+    blueprints: {
+      processDiagram: String, // Stores Mermaid code for SDLC
+      systemDiagram: String, // Stores Mermaid code for Architecture
+    },
     riskAssessment: {
       level: String, // "High", "Medium", "Low", "Critical"
 

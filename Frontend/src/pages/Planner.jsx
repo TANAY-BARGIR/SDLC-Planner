@@ -1,9 +1,22 @@
+// frontend/src/pages/Planner.jsx
 import { useState } from "react";
-import Timeline from "../components/Timeline";
+import MermaidDiagram from "../components/MermaidDiagram";
+import { formatCurrency, formatRisk } from "../utils/utils.js";
+import {
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Layers,
+  FileText,
+  Cpu,
+} from "lucide-react";
 
 const Planner = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+
   const [formData, setFormData] = useState({
     projectName: "",
     size: "medium",
@@ -22,89 +35,69 @@ const Planner = () => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
-
-    const payload = {
-      projectName: formData.projectName,
-      description: "Generated via UI",
-      parameters: {
-        size: formData.size,
-        requirements: formData.requirements,
-        teamSkill: formData.teamSkill,
-        timeline: formData.timeline,
-        budget: formData.budget,
-        safetyCritical: formData.safetyCritical === "true",
-      },
-    };
+    setFeedbackSent(false);
 
     try {
       const response = await fetch("http://localhost:5000/api/inception", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...formData,
+          parameters: {
+            ...formData,
+            safetyCritical: formData.safetyCritical === "true",
+          },
+        }),
       });
       const data = await response.json();
       setResult(data.data);
     } catch (err) {
-      alert("Simulation Failed! Check backend console.");
+      alert("Simulation Failed! Ensure Backend is running.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper Functions
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumSignificantDigits: 3,
-    }).format(amount);
-  };
-
-  const formatRisk = (rawString) => {
-    const DICTIONARY = {
-      size_large: "Large Scale Project",
-      size_medium: "Medium Scale Project",
-      size_small: "Small Scale Project",
-      team_junior: "Inexperienced Team",
-      team_senior: "Expert Team",
-      team_mixed: "Mixed Skill Team",
-      model_agile: "Agile Methodology",
-      model_waterfall: "Waterfall Methodology",
-      "short timelines penalize heavy process models":
-        "Timeline too short for heavy process",
-      "dynamic requirements strongly favor agile iterations":
-        "Dynamic scope needs Agile",
-      "junior teams require structure": "Juniors need structured workflow",
-    };
-
-    Object.keys(DICTIONARY).forEach((key) => {
-      if (rawString.includes(key))
-        rawString = rawString.replace(key, DICTIONARY[key]);
-    });
-
-    if (rawString.includes("AI Pattern Detected")) {
-      return `🤖 AI Insight: ${rawString.split(" (Impact")[0]}`;
+  const handleFeedback = async (success) => {
+    if (!result) return;
+    try {
+      await fetch("http://localhost:5000/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId: result._id,
+          feedback: {
+            success: success,
+            rating: success ? 5 : 2,
+            actualDuration: result.generatedPlan.estimates.durationMonths,
+            comment: "User feedback from Web UI",
+          },
+        }),
+      });
+      setFeedbackSent(true);
+    } catch (err) {
+      console.error(err);
     }
-    return rawString;
   };
 
   return (
-    <div className="page-container planner-layout">
-      <div>
-        <h1
-          className="gradient-text"
-          style={{ textAlign: "center", fontSize: "2.5rem" }}
-        >
-          🚀 SDLC Simulator
-        </h1>
-        <p className="subtitle" style={{ textAlign: "center" }}>
-          AI-Powered Software Planning Engine
+    <div className="page-container">
+      {/* Header */}
+      <div style={{ marginBottom: "2rem", textAlign: "center" }}>
+        <h1>New Project Blueprint</h1>
+        <p>
+          Define your constraints to generate a comprehensive SDLC strategy.
         </p>
+      </div>
 
-        {/* Form Card */}
-        <div className="card" style={{ marginBottom: "2rem" }}>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
+      {/* Input Section */}
+      <div
+        className="card"
+        style={{ maxWidth: "1000px", margin: "0 auto 3rem auto" }}
+      >
+        <form onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="form-group" style={{ gridColumn: "span 2" }}>
               <label className="form-label">Project Name</label>
               <input
                 className="form-input"
@@ -115,177 +108,330 @@ const Planner = () => {
                 required
               />
             </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Project Size</label>
-                <select
-                  className="form-select"
-                  name="size"
-                  value={formData.size}
-                  onChange={handleChange}
-                >
-                  <option value="small">Small (&lt; 20 KLOC)</option>
-                  <option value="medium">Medium (20-100 KLOC)</option>
-                  <option value="large">Large (&gt; 100 KLOC)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Requirements Stability</label>
-                <select
-                  className="form-select"
-                  name="requirements"
-                  value={formData.requirements}
-                  onChange={handleChange}
-                >
-                  <option value="fixed">Fixed / Clear</option>
-                  <option value="dynamic">Dynamic / Vague</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Team Skill</label>
-                <select
-                  className="form-select"
-                  name="teamSkill"
-                  value={formData.teamSkill}
-                  onChange={handleChange}
-                >
-                  <option value="junior">Junior (Learners)</option>
-                  <option value="mixed">Mixed (Standard)</option>
-                  <option value="senior">Senior (Experts)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Safety Critical?</label>
-                <select
-                  className="form-select"
-                  name="safetyCritical"
-                  value={formData.safetyCritical}
-                  onChange={handleChange}
-                >
-                  <option value="false">No (Standard App)</option>
-                  <option value="true">Yes (Life/Money Critical)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Budget</label>
-                <select
-                  className="form-select"
-                  name="budget"
-                  value={formData.budget}
-                  onChange={handleChange}
-                >
-                  <option value="flexible">Flexible</option>
-                  <option value="tight">Tight Constraint</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Timeline</label>
-                <select
-                  className="form-select"
-                  name="timeline"
-                  value={formData.timeline}
-                  onChange={handleChange}
-                >
-                  <option value="flexible">Flexible</option>
-                  <option value="short">Short (Rush)</option>
-                </select>
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary btn-full"
-            >
-              {loading ? "Simulating..." : "Generate Plan"}
-            </button>
-          </form>
-        </div>
-
-        {/* Results */}
-        {result && (
-          <div className="results-container">
-            <div className="result-header">
-              <div>
-                <span className="stat-label">OPTIMAL METHODOLOGY</span>
-                <h2 className="methodology-title">
-                  {result.generatedPlan.methodology}
-                </h2>
-              </div>
-              <span className="confidence-badge">
-                {result.generatedPlan.confidenceScore}% Confidence
-              </span>
-            </div>
-
-            <div className="stats-bar">
-              <div className="stat-item">
-                <span className="stat-label">ESTIMATED COST</span>
-                <div className="stat-value">
-                  {formatCurrency(result.generatedPlan.estimates.cost)}
-                </div>
-              </div>
-              <div
-                className="stat-item"
-                style={{
-                  borderLeft: "2px solid #e2e8f0",
-                  borderRight: "2px solid #e2e8f0",
-                }}
+            <div className="form-group">
+              <label className="form-label">Project Size</label>
+              <select
+                className="form-select"
+                name="size"
+                value={formData.size}
+                onChange={handleChange}
               >
-                <span className="stat-label">DURATION</span>
-                <div className="stat-value">
-                  {result.generatedPlan.estimates.durationMonths} Months
-                </div>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">TEAM SIZE</span>
-                <div className="stat-value">
-                  {result.generatedPlan.estimates.teamSize} Engineers
-                </div>
-              </div>
+                <option value="small">Small (&lt; 20 KLOC)</option>
+                <option value="medium">Medium (20-100 KLOC)</option>
+                <option value="large">Large (&gt; 100 KLOC)</option>
+              </select>
             </div>
-
-            <Timeline phases={result.generatedPlan.phases} />
-
-            <div className="consultant-report">
-              <h3
-                style={{
-                  color: "#667eea",
-                  fontSize: "1.3rem",
-                  marginBottom: "1rem",
-                }}
+            <div className="form-group">
+              <label className="form-label">Requirements</label>
+              <select
+                className="form-select"
+                name="requirements"
+                value={formData.requirements}
+                onChange={handleChange}
               >
-                👨‍💼 Consultant Report
-              </h3>
-              <p className="report-section">
-                <strong className="report-label">Summary:</strong>{" "}
-                {result.generatedPlan.riskAssessment.narrative.summary}
-              </p>
-              <p className="report-section">
-                <strong className="report-label">Evidence:</strong>{" "}
-                {result.generatedPlan.riskAssessment.narrative.evidence}
-              </p>
-
-              <div className="risk-box">
-                <strong className="risk-title">⚠️ Risk Analysis:</strong>
-                <ul className="risk-list">
-                  {result.generatedPlan.riskAssessment.narrative.riskAnalysis
-                    .split(";")
-                    .map((risk, i) => {
-                      const cleanRisk = risk
-                        .replace("Key risk factors identified include:", "")
-                        .trim();
-                      if (!cleanRisk || cleanRisk === ".") return null;
-                      return (
-                        <li key={i} className="risk-item">
-                          {formatRisk(cleanRisk)}
-                        </li>
-                      );
-                    })}
-                </ul>
-              </div>
+                <option value="fixed">Fixed / Stable</option>
+                <option value="dynamic">Dynamic / Evolving</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Team Skill</label>
+              <select
+                className="form-select"
+                name="teamSkill"
+                value={formData.teamSkill}
+                onChange={handleChange}
+              >
+                <option value="junior">Junior</option>
+                <option value="mixed">Mixed</option>
+                <option value="senior">Senior</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Budget</label>
+              <select
+                className="form-select"
+                name="budget"
+                value={formData.budget}
+                onChange={handleChange}
+              >
+                <option value="flexible">Flexible</option>
+                <option value="tight">Tight</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Criticality</label>
+              <select
+                className="form-select"
+                name="safetyCritical"
+                value={formData.safetyCritical}
+                onChange={handleChange}
+              >
+                <option value="false">Standard</option>
+                <option value="true">Safety Critical</option>
+              </select>
             </div>
           </div>
-        )}
+
+          <div style={{ marginTop: "1.5rem" }}>
+            <button
+              type="submit"
+              className="btn btn-primary btn-full"
+              disabled={loading}
+            >
+              {loading ? "Analyzing Constraints..." : "Generate Strategic Plan"}
+            </button>
+          </div>
+        </form>
       </div>
+
+      {/* Results Section */}
+      {result && (
+        <div className="results-grid">
+          {/* LEFT COLUMN: Stats & Strategy */}
+          <div className="card" style={{ height: "fit-content" }}>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <span className="stat-label">Recommended Methodology</span>
+              <h2 style={{ color: "#4f46e5", marginTop: "0.5rem" }}>
+                {result.generatedPlan.methodology}
+              </h2>
+              <div
+                style={{
+                  marginTop: "0.5rem",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  background: "#eff6ff",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "20px",
+                  color: "#1d4ed8",
+                  fontSize: "0.85rem",
+                  fontWeight: "600",
+                }}
+              >
+                <Layers size={16} />
+                {result.generatedPlan.architecture.model}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <div className="stat-box">
+                <div className="stat-label">Confidence</div>
+                <div className="stat-value" style={{ color: "#10b981" }}>
+                  {result.generatedPlan.confidenceScore}%
+                </div>
+              </div>
+              <div className="stat-box">
+                <div className="stat-label">Duration</div>
+                <div className="stat-value">
+                  {result.generatedPlan.estimates.durationMonths} Mo
+                </div>
+              </div>
+            </div>
+
+            <div className="stat-box" style={{ marginBottom: "1.5rem" }}>
+              <div className="stat-label">Estimated Cost</div>
+              <div className="stat-value">
+                {formatCurrency(result.generatedPlan.estimates.cost)}
+              </div>
+            </div>
+
+            {/* Feedback Loop */}
+            {!feedbackSent ? (
+              <div
+                style={{
+                  background: "#f8fafc",
+                  padding: "1rem",
+                  borderRadius: "8px",
+                  border: "1px dashed #cbd5e1",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "0.85rem",
+                    marginBottom: "0.5rem",
+                    fontWeight: "600",
+                  }}
+                >
+                  Was this plan helpful?
+                </p>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    onClick={() => handleFeedback(true)}
+                    className="btn btn-outline"
+                    style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => handleFeedback(false)}
+                    className="btn btn-outline"
+                    style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p
+                style={{
+                  color: "#10b981",
+                  fontSize: "0.85rem",
+                  fontWeight: "600",
+                }}
+              >
+                ✓ Feedback recorded.
+              </p>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: Deep Dive Tabs */}
+          <div className="card">
+            {/* NEW TABS UI */}
+            <div className="tab-group">
+              <button
+                className={`tab-btn ${activeTab === "overview" ? "active" : ""}`}
+                onClick={() => setActiveTab("overview")}
+              >
+                <Info
+                  size={16}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "text-bottom",
+                    marginRight: "6px",
+                  }}
+                />
+                Overview
+              </button>
+              <button
+                className={`tab-btn ${activeTab === "architecture" ? "active" : ""}`}
+                onClick={() => setActiveTab("architecture")}
+              >
+                <Cpu
+                  size={16}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "text-bottom",
+                    marginRight: "6px",
+                  }}
+                />
+                Architecture
+              </button>
+              <button
+                className={`tab-btn ${activeTab === "blueprints" ? "active" : ""}`}
+                onClick={() => setActiveTab("blueprints")}
+              >
+                <FileText
+                  size={16}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "text-bottom",
+                    marginRight: "6px",
+                  }}
+                />
+                Blueprints
+              </button>
+            </div>
+
+            <div style={{ padding: "0.5rem 0" }}>
+              {activeTab === "overview" && (
+                <div>
+                  <div className="content-card">
+                    <div className="section-title">
+                      <Info size={20} /> Executive Summary
+                    </div>
+                    <p style={{ lineHeight: "1.7", color: "#334155" }}>
+                      {result.generatedPlan.riskAssessment.narrative.summary}
+                    </p>
+                  </div>
+
+                  <div className="section-title">
+                    <AlertTriangle size={20} /> Critical Factors
+                  </div>
+                  <div className="risk-list">
+                    {result.generatedPlan.riskAssessment.rationale.map(
+                      (r, i) => (
+                        <div key={i} className="risk-item">
+                          <span
+                            style={{ color: "#334155", fontSize: "0.95rem" }}
+                          >
+                            {formatRisk(r.description)}
+                          </span>
+
+                          {r.impactScore > 0 ? (
+                            <span className="risk-badge badge-green">
+                              +{r.impactScore} Bonus
+                            </span>
+                          ) : r.impactScore < 0 ? (
+                            <span className="risk-badge badge-red">
+                              {r.impactScore} Risk
+                            </span>
+                          ) : (
+                            <span className="risk-badge badge-gray">
+                              Neutral
+                            </span>
+                          )}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "architecture" && (
+                <div>
+                  <div className="content-card">
+                    <div className="section-title">
+                      <Cpu size={20} />{" "}
+                      {result.generatedPlan.architecture.model}
+                    </div>
+                    <ul style={{ paddingLeft: "1.2rem", marginBottom: "0" }}>
+                      {result.generatedPlan.architecture.rationale.map(
+                        (reason, idx) => (
+                          <li
+                            key={idx}
+                            style={{ marginBottom: "0.5rem", color: "#475569" }}
+                          >
+                            {reason}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+
+                  <div className="section-title">
+                    <Layers size={20} /> System Structure
+                  </div>
+                  <MermaidDiagram
+                    chart={result.generatedPlan.blueprints.systemDiagram}
+                  />
+                </div>
+              )}
+
+              {activeTab === "blueprints" && (
+                <div>
+                  <div className="section-title">
+                    <FileText size={20} /> Process Workflow
+                  </div>
+                  <p style={{ marginBottom: "1rem", color: "#64748b" }}>
+                    Standard lifecycle phases for{" "}
+                    {result.generatedPlan.methodology}:
+                  </p>
+                  <MermaidDiagram
+                    chart={result.generatedPlan.blueprints.processDiagram}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

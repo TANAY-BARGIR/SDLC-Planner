@@ -1,6 +1,6 @@
+// frontend/src/pages/Login.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import DiamondGallery from "../components/DiamondGallery";
 
 const Login = () => {
   const [formData, setFormData] = useState({ identifier: "", password: "" });
@@ -11,65 +11,75 @@ const Login = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className="grid-layout">
-        <div className="left-column">
-          <div className="card">
-            <h2 className="gradient-text" style={{ fontSize: "2rem" }}>
-              Welcome Back
-            </h2>
-            <p className="subtitle" style={{ fontSize: "1rem" }}>
-              Login to continue
-            </p>
+    <div
+      className="page-container"
+      style={{ minHeight: "80vh", justifyContent: "center" }}
+    >
+      <div className="card" style={{ maxWidth: "400px" }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <h2 style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>
+            Welcome back
+          </h2>
+          <p style={{ color: "#64748b" }}>
+            Please enter your details to sign in.
+          </p>
+        </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Username or Email</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={formData.identifier}
-                  onChange={(e) =>
-                    setFormData({ ...formData, identifier: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <button type="submit" className="btn-primary btn-full">
-                Login
-              </button>
-            </form>
-
-            <p style={{ textAlign: "center", marginTop: "1.5rem", color: "#718096" }}>
-              Don't have an account?{" "}
-              <Link
-                to="/signup"
-                style={{
-                  color: "#667eea",
-                  fontWeight: "600",
-                  textDecoration: "none",
-                }}
-              >
-                Sign Up
-              </Link>
-            </p>
+        <form onSubmit={handleSubmit}>
+          {/* THE FIX: Using form-group class */}
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input
+              type="text"
+              className="form-input"
+              value={formData.identifier}
+              onChange={(e) =>
+                setFormData({ ...formData, identifier: e.target.value })
+              }
+              placeholder="Enter your email"
+              required
+            />
           </div>
-        </div>
-        <div className="right-column">
-          <DiamondGallery />
-        </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-input"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          <button type="submit" className="btn btn-primary btn-full">
+            Sign In
+          </button>
+        </form>
+
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "1.5rem",
+            fontSize: "0.9rem",
+            color: "#64748b",
+          }}
+        >
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            style={{
+              color: "#4f46e5",
+              fontWeight: "600",
+              textDecoration: "none",
+            }}
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
